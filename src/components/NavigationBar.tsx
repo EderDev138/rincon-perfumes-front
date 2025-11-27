@@ -77,7 +77,7 @@ export default function NavigationBar() {
               {isAuthenticated ? (
                 <>
                   <span className="text-sm text-gray-300">
-                    Hola, <span className="font-semibold text-white">{user}</span>
+                    Hola, <span className="font-semibold text-white">{user?.nombre}</span>
                   </span>
                   <button
                     onClick={handleLogout}

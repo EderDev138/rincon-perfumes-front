@@ -1,85 +1,127 @@
-import React, { createContext, useState, useEffect, type ReactNode } from 'react';
+import React, { createContext, useState, useEffect, useContext } from 'react';
 import api from '../api/axiosConfig';
-// Importamos la interfaz Usuario y LoginResponse
-import type { LoginResponse, Usuario } from '../types';
+import type { CarritoItem, Producto } from '../types';
+import { AuthContext } from './AuthContext';
+import { toast } from 'react-toastify';
 
-interface AuthContextType {
-  user: Usuario | null; // AHORA ES UN OBJETO, NO UN STRING
-  token: string | null;
-  login: (correo: string, contrasena: string) => Promise<void>;
-  logout: () => void;
-  isAuthenticated: boolean;
-  isAdmin: boolean;
-  loading: boolean; // Para evitar redirecciones prematuras
+interface CartContextType {
+  items: CarritoItem[];
+  total: number;
+  count: number;
+  clienteId: number | null; // <--- NUEVO CAMPO
+  addToCart: (producto: Producto) => Promise<void>;
+  removeFromCart: (idCarrito: number) => Promise<void>;
+  clearCart: () => Promise<void>;
 }
 
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const CartContext = createContext<CartContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<Usuario | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('jwt_token'));
-  const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isAuthenticated } = useContext(AuthContext)!;
+  const [items, setItems] = useState<CarritoItem[]>([]);
+  // Nuevo estado para guardar el ID real de la tabla 'clientes'
+  const [clienteId, setClienteId] = useState<number | null>(null);
 
-  // 1. Cargar sesión al recargar la página
+  // 1. Efecto para encontrar el ID de Cliente del usuario actual
   useEffect(() => {
-    const storedToken = localStorage.getItem('jwt_token');
-    const storedUser = localStorage.getItem('user_data'); // Leemos el objeto completo
+    const buscarClienteId = async () => {
+      if (isAuthenticated && user?.idUsuario) {
+        try {
+          // Obtenemos todos los clientes y buscamos el que corresponde a nuestro usuario
+          
+          const res = await api.get('/clientes');
+          //Ojo El backend devuelve 'usuario' dentro de cliente con sus datos
+          const miCliente = res.data.find((c: any) => c.usuario.idUsuario === user.idUsuario);
 
-    if (storedToken && storedUser) {
-      const parsedUser: Usuario = JSON.parse(storedUser);
-      setToken(storedToken);
-      setUser(parsedUser);
-      // Verificación simple de rol basada en el correo (ajustar según necesidad)
-      setIsAdmin(parsedUser.correo.includes('admin') || parsedUser.correo === 'admin@test.cl');
-    }
-    setLoading(false);
-  }, []);
-
-  const login = async (correo: string, contrasena: string) => {
-    try {
-      // Paso 1: Obtener Token
-      const response = await api.post<LoginResponse>('/auth/login', { correo, contrasena });
-      
-      if (response.data.autenticado && response.data.token) {
-        const newToken = response.data.token;
-
-        // Paso 2: TRUCO - Como el login no devuelve el ID, buscamos el usuario por su correo
-        // (Esto es posible porque el endpoint /usuarios es público en tu backend)
-        const usuariosRes = await api.get<Usuario[]>('/usuarios');
-        const usuarioEncontrado = usuariosRes.data.find(u => u.correo === correo);
-
-        if (usuarioEncontrado) {
-          // Guardamos todo en localStorage
-          localStorage.setItem('jwt_token', newToken);
-          localStorage.setItem('user_data', JSON.stringify(usuarioEncontrado)); // Guardamos el objeto
-
-          setToken(newToken);
-          setUser(usuarioEncontrado);
-          setIsAdmin(usuarioEncontrado.correo.includes('admin'));
-        } else {
-            throw new Error("Usuario no encontrado en la base de datos");
+          if (miCliente) {
+            setClienteId(miCliente.id);
+          } else {
+            console.warn("El usuario logueado no tiene perfil de cliente (quizás es solo Admin).");
+            setClienteId(null);
+          }
+        } catch (error) {
+          console.error("Error buscando perfil de cliente:", error);
         }
       } else {
-        throw new Error(response.data.mensaje);
+        setClienteId(null);
+        setItems([]);
       }
+    };
+
+    buscarClienteId();
+  }, [isAuthenticated, user]);
+
+  // 2. Efecto para cargar el carrito una vez que tenemos el clienteId
+  useEffect(() => {
+    if (clienteId) {
+      fetchCart(clienteId);
+    } else {
+      setItems([]);
+    }
+  }, [clienteId]);
+
+  const fetchCart = async (id: number) => {
+    try {
+      const res = await api.get(`/carrito/cliente/${id}`);
+      setItems(res.data);
     } catch (error) {
-      console.error(error);
-      throw error;
+      console.error("Error cargando carrito:", error);
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('jwt_token');
-    localStorage.removeItem('user_data');
-    setToken(null);
-    setUser(null);
-    setIsAdmin(false);
+  const addToCart = async (producto: Producto) => {
+    if (!isAuthenticated) {
+        toast.error("Debes iniciar sesión");
+        return;
+    }
+    if (!clienteId) {
+      toast.error("Tu usuario no tiene perfil de cliente habilitado para compras.");
+      return;
+    }
+
+    try {
+      // Usamos clienteId (ID de tabla clientes) en lugar de user.idUsuario
+      await api.post('/carrito', {
+        cliente: { id: clienteId }, 
+        producto: { idProducto: producto.idProducto },
+        cantidad: 1
+      });
+      toast.success("Agregado al carrito");
+      await fetchCart(clienteId);
+    } catch (error) {
+      console.error("Error al agregar:", error);
+      toast.error("Error al conectar con el servidor.");
+    }
   };
 
+  const removeFromCart = async (idCarrito: number) => {
+    if (!clienteId) return;
+    try {
+      await api.delete(`/carrito/${idCarrito}`);
+      await fetchCart(clienteId);
+      toast.info("Producto eliminado");
+    } catch (error) {
+      console.error("Error al eliminar:", error);
+    }
+  };
+
+  const clearCart = async () => {
+    if (!clienteId) return;
+    try {
+      await api.delete(`/carrito/vaciar/${clienteId}`);
+      setItems([]);
+      toast.info("Carrito vaciado");
+    } catch (error) {
+      console.error("Error al vaciar:", error);
+    }
+  };
+
+  const total = items.reduce((acc, item) => acc + (item.producto.precio * item.cantidad), 0);
+  const count = items.reduce((acc, item) => acc + item.cantidad, 0);
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated: !!user, isAdmin, loading }}>
+    <CartContext.Provider value={{ items, total, count,clienteId, addToCart, removeFromCart, clearCart }}>
       {children}
-    </AuthContext.Provider>
+    </CartContext.Provider>
   );
 };
