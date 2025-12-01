@@ -1,73 +1,175 @@
-# React + TypeScript + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+# 🛍️ Rincón Perfumes – Frontend
 
-## React Compiler
+**E-commerce moderno para la venta de perfumes**, desarrollado con **React 19**, **Vite** y **TypeScript**, implementando un sistema híbrido de carrito (invitado/cliente), autenticación JWT, interfaz responsiva y una experiencia de compra optimizada.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+**Elaborado por:** *Eder Valdivia* y *Leonardo Amundarain*.
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 📦 Stack Tecnológico
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+| Categoría         | Tecnologías                                  |
+| ----------------- | -------------------------------------------- |
+| **Core**          | React 19, TypeScript, Vite                   |
+| **Routing**       | React Router DOM v7                          |
+| **Estado**        | React Context API (AuthContext, CartContext) |
+| **HTTP Client**   | Axios                                        |
+| **Autenticación** | JWT + jwt-decode                             |
+| **UI & Estilos**  | Tailwind CSS v4, shadcn/ui, lucide-react     |
+| **Utilidades**    | clsx, tailwind-merge, cva                    |
+| **Testing**       | Vitest, React Testing Library, JSDOM         |
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+---
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 📋 Requisitos Previos
+
+Asegúrate de tener instalado:
+
+* **Node.js 18+**
+* **npm**
+
+---
+
+## 🚀 Instalación y Configuración
+
+### 1️⃣ Clonar el repositorio
+
+```bash
+git clone <URL_DEL_REPOSITORIO>
+cd rincon-perfumes-front
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### 2️⃣ Instalar dependencias
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
+
+> Esto incluye React, Vite, Tailwind, Axios, React Router DOM, JWT decode, React Toastify y todas las herramientas de Testing.
+
+---
+
+### 3️⃣ Configuración del entorno (Opcional)
+
+Actualmente la URL base del backend se define en:
+
+```
+src/api/axiosConfig.ts
+```
+
+Por defecto apunta a:
+
+```
+http://localhost:8080/api
+```
+
+Si tu backend utiliza otra ruta, actualiza ese archivo o añade soporte con variables `.env`.
+
+---
+
+## 🛠️ Scripts del Proyecto
+
+### ▶️ Servidor de desarrollo
+
+```bash
+npm run dev
+```
+
+La app estará disponible usualmente en:
+
+```
+http://localhost:5173
+```
+
+---
+
+### 🏗️ Build para producción
+
+```bash
+npm run build
+```
+
+Generará la carpeta optimizada:
+
+```
+/dist
+```
+
+---
+
+## 🧪 Pruebas Unitarias (Vitest)
+
+Ejecución de todos los tests:
+
+```bash
+npm run test
+```
+
+**Incluye:**
+
+* Validación de componentes
+* Tests de utilidades
+* Flujos (login, carrito, navegación)
+
+🔧 Tecnologías de Testing:
+
+* **Vitest**: Motor rápido integrado en Vite
+* **JSDOM**: Simulación de DOM para Node
+* **Testing Library**: Interacción realista con componentes
+
+---
+
+## 🎨 Estilos y UI (Tailwind + shadcn/ui)
+
+Este proyecto utiliza:
+
+* **Tailwind CSS v4** → Estilos utilitarios modernos
+* **shadcn/ui** → Arquitectura de componentes reutilizables
+* **lucide-react** → Iconografía
+* **cva** y **tailwind-merge** → Variantes y manejo avanzado de clases
+* **react-toastify** → Notificaciones visuales
+
+Para agregar nuevos componentes shadcn:
+
+```
+npx shadcn-ui add <componente>
+```
+
+Asegúrate de tener correctamente configurado:
+
+```
+components.json
+```
+
+---
+
+## 📁 Estructura General
+
+```
+src/
+ ├── api/
+ ├── components/
+ ├── context/
+ ├── hooks/
+ ├── pages/
+ ├── router/
+ ├── styles/
+ └── main.tsx
+```
+
+---
+
+## 📜 Licencia
+
+© 2025 **Rincón Perfumes**
+Todos los derechos reservados.
+
+---
+
+Si quieres agregar **badges**, **capturas de pantalla**, o una sección de **roadmap**, puedo generarlas también.
