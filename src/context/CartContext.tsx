@@ -8,7 +8,7 @@ interface CartContextType {
   items: CarritoItem[];
   total: number;
   count: number;
-  clienteId: number | null; // <--- NUEVO CAMPO
+  clienteId: number | null;
   addToCart: (producto: Producto) => Promise<void>;
   removeFromCart: (idCarrito: number) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -19,28 +19,32 @@ export const CartContext = createContext<CartContextType | undefined>(undefined)
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isAuthenticated } = useContext(AuthContext)!;
   const [items, setItems] = useState<CarritoItem[]>([]);
-  // Nuevo estado para guardar el ID real de la tabla 'clientes'
+ 
   const [clienteId, setClienteId] = useState<number | null>(null);
 
-  // 1. Efecto para encontrar el ID de Cliente del usuario actual
+
   useEffect(() => {
     const buscarClienteId = async () => {
       if (isAuthenticated && user?.idUsuario) {
         try {
-          // Obtenemos todos los clientes y buscamos el que corresponde a nuestro usuario
-          
+          console.log(` Buscando cliente para Usuario ID: ${user.idUsuario}`);
           const res = await api.get('/clientes');
-          //Ojo El backend devuelve 'usuario' dentro de cliente con sus datos
+          
+          // Debug: Ver qué llega del backend
+          console.log(" Lista de clientes en BD:", res.data);
+
+          // Buscamos el cliente que corresponde a este usuario
           const miCliente = res.data.find((c: any) => c.usuario.idUsuario === user.idUsuario);
 
           if (miCliente) {
+            console.log(`Cliente encontrado! ID Cliente: ${miCliente.id}`);
             setClienteId(miCliente.id);
           } else {
-            console.warn("El usuario logueado no tiene perfil de cliente (quizás es solo Admin).");
+            console.warn(" Este usuario NO tiene perfil de Cliente asociado.");
             setClienteId(null);
           }
         } catch (error) {
-          console.error("Error buscando perfil de cliente:", error);
+          console.error(" Error buscando perfil de cliente:", error);
         }
       } else {
         setClienteId(null);

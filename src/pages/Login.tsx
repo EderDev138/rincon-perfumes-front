@@ -60,7 +60,7 @@ export default function Login() {
               />
             </div>
             <div>
-              <label htmlFor="password" class="sr-only">Contraseña</label>
+              <label htmlFor="password" className="sr-only">Contraseña</label>
               <input
                 id="password"
                 name="contrasena"

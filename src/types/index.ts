@@ -66,15 +66,34 @@ export interface Usuario {
   idUsuario: number;
   nombre: string;
   apellido: string;
-  correo: string;      // Backend usa 'correo', no 'email'
+  correo: string;  
   activo: boolean;
 }
 
 // --- Interface
-// --- Interface para respuesta de Login (ESTA ES LA QUE TE FALTABA) ---
+// --- Interface para respuesta de Login
 export interface LoginResponse {
     mensaje: string;
     nombreUsuario: string;
     autenticado: boolean;
     token: string;
+}
+
+// --- Interface de Rol ---
+// Coincide con RolEntidad.java
+export interface Rol {
+  idRol: number;
+  nombreRol: string;
+  descripcionRol?: string;
+}
+
+// Coincide con UsuarioEntidad.java
+export interface Usuario {
+  idUsuario: number;
+  nombre: string;
+  apellido: string;
+  correo: string;
+  activo: boolean;
+  contrasena?: string; // Opcional, solo lo enviamos al crear/editar, el backend no siempre lo devuelve visible
+  roles: Rol[];        
 }

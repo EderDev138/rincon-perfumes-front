@@ -9,6 +9,7 @@ import Catalogo from '../pages/Catalogo';
 import Carrito from '../pages/Carrito';
 import Gracias from '../pages/Gracias';
 import AdminProductos from '../pages/AdminProductos';
+import AdminUsuarios from '../pages/AdminUsuarios';
 
 export const AppRoutes = () => {
   return (
@@ -30,7 +31,7 @@ export const AppRoutes = () => {
         <Route element={<ProtectedRoute requireAdmin={true} />}>
           <Route path="/admin" element={<Navigate to="/admin/productos" replace />} />
           <Route path="/admin/productos" element={<AdminProductos />} />
-          {/* <Route path="/admin/usuarios" element={<AdminUsuarios />} en implementacion /> */}
+          {<Route path="/admin/usuarios" element={<AdminUsuarios />}/>}
         </Route>
       </Route>
 

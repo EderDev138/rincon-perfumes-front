@@ -12,49 +12,84 @@ export default function Carrito() {
 
   if (!cartContext || !authContext) return null;
 
-  const { items, total, removeFromCart, clearCart } = cartContext;
+  // ¡Agrega 'clienteId' aquí!
+const { items, total, removeFromCart, clearCart, clienteId } = cartContext;
   const { user } = authContext;
 
   const handleCheckout = async () => {
-    if (!user?.idUsuario || items.length === 0) return;
+    // 1. Validación de seguridad
+    if (!clienteId || items.length === 0) {
+      alert("No se puede procesar: Faltan datos del cliente o el carrito está vacío.");
+      return;
+    }
 
     try {
-      // 1. Crear Pedido (Cabecera)
-      const pedidoData = {
-        cliente: { id: user.idUsuario },
-        subtotal: total,
-        iva: total * 0.19,
-        total: total * 1.19,
+      // 2. Preparar datos numéricos (Redondeados para evitar errores de decimales)
+      const subtotalImp = Math.round(total);
+      const ivaImp = Math.round(total * 0.19);
+      const totalImp = Math.round(total * 1.19);
+
+      // 
+      // 
+      const now = new Date();
+      // Ajustamos a hora local manualmente
+      const fechaLocal = new Date(now.getTime() - (now.getTimezoneOffset() * 60000))
+                         .toISOString()
+                         .slice(0, 19); 
+
+      // 4. Payload BLINDADO (Todos los campos)
+      const pedidoPayload = {
+        cliente: { id: Number(clienteId) }, 
+        fechaPedido: fechaLocal,          
+        subtotal: subtotalImp,
+        descuento: 0,                       
+        iva: ivaImp,
+        total: totalImp,
         estado: "PENDIENTE",
-        direccionEnvio: "Dirección del usuario", 
-        fechaPedido: new Date().toISOString()
+        direccionEnvio: "Dirección Principal", 
+        comunaEnvio: "Santiago",               
+        regionEnvio: "Metropolitana",         
+        numeroSeguimiento: ""                  
       };
 
-      const resPedido = await api.post('/pedidos', pedidoData);
-      const pedidoId = resPedido.data.id; 
+      console.log("📦 Enviando Pedido:", pedidoPayload);
 
-      if (!pedidoId) throw new Error("No se recibió ID del pedido");
+      // 5. Enviar Cabecera
+      const resPedido = await api.post('/pedidos', pedidoPayload);
+      
+      // Recuperar ID de respuesta (soportando variantes)
+      const pedidoId = resPedido.data?.id || resPedido.data?.idPedido;
 
-      // 2. Guardar Detalles
+      if (!pedidoId) {
+        console.error("Respuesta extraña del backend:", resPedido);
+        throw new Error("El pedido se creó pero no tiene ID.");
+      }
+
+      console.log("✅ Pedido creado con ID:", pedidoId);
+
+      // 6. Enviar Detalles (Items)
       const detallesPromesas = items.map((item: CarritoItem) => {
         return api.post('/detalles-pedido', {
           pedido: { id: pedidoId },
           producto: { idProducto: item.producto.idProducto },
-          cantidad: item.cantidad,
-          precioUnitario: item.producto.precio,
-          subtotal: item.producto.precio * item.cantidad
+          cantidad: Number(item.cantidad),
+          precioUnitario: Number(item.producto.precio),
+          subtotal: Number(item.producto.precio * item.cantidad),
+          descuentoAplicado: 0
         });
       });
 
       await Promise.all(detallesPromesas);
 
-      // 3. Vaciar y Redirigir
+      // 7. Finalizar
       await clearCart();
       navigate('/gracias', { state: { numeroOrden: pedidoId } });
 
-    } catch (error) {
-      console.error("Error al procesar la compra", error);
-      alert("Hubo un error al procesar tu pedido.");
+    } catch (error: any) {
+      console.error("🔥 Error al comprar:", error);
+      // Mostrar el mensaje real del backend si viene
+      const serverMsg = error.response?.data?.message || error.response?.data?.error;
+      alert(`Error del servidor: ${serverMsg || "Revisa la consola de Java para más detalles"}`);
     }
   };
 
@@ -77,6 +112,7 @@ export default function Carrito() {
 
   // Renderizado principal
   return (
+    <>
     <div className="container mx-auto py-10 px-4">
       <h2 className="text-2xl font-bold mb-6 text-gray-800">Tu Carrito</h2>
       
@@ -166,5 +202,7 @@ export default function Carrito() {
         </button>
       </div>
     </div>
+  </>
+    
   );
 }
