@@ -3,7 +3,7 @@ import api from '../api/axiosConfig';
 import type { Producto, Marca, Categoria, Genero } from '../types';
 import ProductCard from '../components/ProductCard';
 import Pagination from '../components/Pagination';
-import SidebarFiltros from '../components/SideBarFiltros';
+import SidebarFiltros from '../components/SidebarFiltros';
 
 export default function Catalogo() {
   // extraccion de datos
@@ -62,7 +62,7 @@ export default function Catalogo() {
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setFiltros({ ...filtros, [e.target.name]: Number(e.target.value) });
-    setCurrentPage(1); // Resetear a página 1 es clave UX
+    setCurrentPage(1); 
   };
 
   const limpiarFiltros = () => {
@@ -73,19 +73,20 @@ export default function Catalogo() {
   if (loading) return <div className="min-h-screen flex items-center justify-center text-[#D4AF37] font-serif">Cargando catálogo...</div>;
 
   return (
+    // CAMBIO: div principal sigue siendo div wrapper, pero el contenido usa section
     <div className="bg-[#FDFBF7] min-h-screen py-10 transition-colors duration-500">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Título */}
-        <div className="text-center mb-10 animate-fade-in-down">
+        <header className="text-center mb-10 animate-fade-in-down">
           <h1 className="text-4xl font-serif font-bold text-[#1A1A1A] mb-4">Catálogo Exclusivo</h1>
           <div className="w-24 h-1 bg-[#D4AF37] mx-auto rounded-full"></div>
-        </div>
+        </header>
 
-        {/*proiductos */}
+        {/* Contenido Principal */}
         <div className="flex flex-col lg:flex-row gap-8">
           
-          {/* bara lateral de filtro */}
+          {/* Sidebar */}
           <SidebarFiltros 
             marcas={marcas}
             categorias={categorias}
@@ -96,7 +97,7 @@ export default function Catalogo() {
             onLimpiar={limpiarFiltros}
           />
 
-          {/* productos filtrados */}
+          {/* Grilla de Productos */}
           <div className="w-full lg:w-3/4">
             {productosFiltrados.length > 0 ? (
               <>
@@ -106,7 +107,6 @@ export default function Catalogo() {
                   ))}
                 </div>
 
-                {/* paginacion */}
                 <div className="mt-8">
                   <Pagination 
                     currentPage={currentPage}
@@ -129,7 +129,7 @@ export default function Catalogo() {
           </div>
         </div>
 
-      </div>
+      </section>
     </div>
   );
 }

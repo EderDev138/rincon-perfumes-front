@@ -2,13 +2,12 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import { toast } from 'react-toastify';
-import { Info, AlertCircle, CheckCircle } from 'lucide-react'; // Iconos
+import { Info, AlertCircle, CheckCircle } from 'lucide-react';
 
 export default function Registro() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   
-  // Estado para errores de validación
   const [errors, setErrors] = useState<{[key: string]: string}>({});
 
   const [form, setForm] = useState({
@@ -24,7 +23,6 @@ export default function Registro() {
     region: ''
   });
 
-  // Regex para Email
   const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
   
   const validateField = (name: string, value: string) => {
@@ -52,7 +50,6 @@ export default function Registro() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validar todo antes de enviar
     if (!emailRegex.test(form.email) || form.password.length < 6) {
       toast.error("Por favor corrige los errores antes de continuar.");
       return;
@@ -92,7 +89,6 @@ export default function Registro() {
     }
   };
 
-  // Clases comunes para inputs
   const inputClass = "mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-[#D4AF37] focus:border-[#D4AF37] transition-colors outline-none";
   const errorInputClass = "mt-1 block w-full border border-red-500 rounded-md shadow-sm p-2 focus:ring-red-500 outline-none bg-red-50";
 
@@ -111,43 +107,86 @@ export default function Registro() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700">RUT</label>
-            <input name="rut" onChange={handleChange} className={inputClass} placeholder="12345678-9" required />
+            <input 
+              name="rut" 
+              onChange={handleChange} 
+              className={inputClass} 
+              placeholder="12345678-9" 
+              required 
+              autoComplete="off" // No hay estándar para RUT
+            />
             <p className="text-xs text-gray-400 mt-1">Sin puntos, con guion.</p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700">Fecha de Nacimiento</label>
-            <input type="date" name="fechaNacimiento" onChange={handleChange} className={inputClass} required />
+            <input 
+              type="date" 
+              name="fechaNacimiento" 
+              onChange={handleChange} 
+              className={inputClass} 
+              required 
+              autoComplete="bday" 
+            />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700">Nombre</label>
-            <input name="primerNombre" onChange={handleChange} className={inputClass} required />
+            <input 
+              name="primerNombre" 
+              onChange={handleChange} 
+              className={inputClass} 
+              required 
+              autoComplete="given-name"
+            />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700">Apellido</label>
-            <input name="primerApellido" onChange={handleChange} className={inputClass} required />
+            <input 
+              name="primerApellido" 
+              onChange={handleChange} 
+              className={inputClass} 
+              required 
+              autoComplete="family-name" //
+            />
           </div>
 
-          {/* --- Sección Contacto --- */}
+          {/*  Sección Contacto */}
           <div className="col-span-2 border-b pb-2 mb-2 mt-4">
             <h3 className="text-lg font-medium text-[#D4AF37]">Contacto y Envío</h3>
           </div>
 
           <div className="col-span-2">
             <label className="block text-sm font-medium text-gray-700">Dirección</label>
-            <input name="direccion" onChange={handleChange} className={inputClass} placeholder="Calle, número, depto..." />
+            <input 
+              name="direccion" 
+              onChange={handleChange} 
+              className={inputClass} 
+              placeholder="Calle, número, depto..." 
+              autoComplete="street-address" 
+            />
           </div>
           
           <div>
             <label className="block text-sm font-medium text-gray-700">Comuna</label>
-            <input name="comuna" onChange={handleChange} className={inputClass} />
+            <input 
+              name="comuna" 
+              onChange={handleChange} 
+              className={inputClass} 
+              autoComplete="address-level2"
+            />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700">Teléfono</label>
-            <input name="telefono" onChange={handleChange} className={inputClass} placeholder="+56 9..." />
+            <input 
+              name="telefono" 
+              onChange={handleChange} 
+              className={inputClass} 
+              placeholder="+56 9..." 
+              autoComplete="tel"
+            />
           </div>
 
           {/* --- Sección Cuenta --- */}
@@ -165,14 +204,13 @@ export default function Registro() {
                 className={errors.email ? errorInputClass : inputClass} 
                 placeholder="ejemplo@correo.com"
                 required 
+                autoComplete="email" // CAMBIO: Email
               />
-              {/* Icono de validación visual */}
               <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                 {form.email && !errors.email && <CheckCircle className="h-5 w-5 text-green-500" />}
                 {errors.email && <AlertCircle className="h-5 w-5 text-red-500" />}
               </div>
             </div>
-            {/* Texto de error o ayuda */}
             {errors.email ? (
               <p className="text-xs text-red-500 mt-1">{errors.email}</p>
             ) : (
@@ -190,6 +228,7 @@ export default function Registro() {
               onChange={handleChange} 
               className={errors.password ? errorInputClass : inputClass}
               required 
+              autoComplete="new-password"
             />
             {errors.password ? (
               <p className="text-xs text-red-500 mt-1">{errors.password}</p>

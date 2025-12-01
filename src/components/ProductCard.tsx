@@ -15,21 +15,23 @@ export default function ProductCard({ producto }: Props) {
     currency: 'CLP',
   }).format(producto.precio);
 
+  // Usamos <article> en lugar de <div> 
   return (
-    <div className="group relative bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden">
+    <article className="group relative bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col overflow-hidden h-full">
       
       {/* Imagen del Producto */}
-      <div className="relative aspect-square overflow-hidden bg-gray-100">
+      <figure className="relative aspect-square overflow-hidden bg-gray-100">
         <img
           src={producto.imagenUrl || "https://placehold.co/400x400?text=Sin+Imagen"}
           alt={producto.nombreProducto}
           className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+          loading="lazy" // Optimización de carga
         />
         {/* Badge de Marca */}
         <span className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full uppercase tracking-wider">
           {producto.marca.nombreMarca}
         </span>
-      </div>
+      </figure>
 
       {/* Información */}
       <div className="p-4 flex flex-col flex-grow">
@@ -50,7 +52,7 @@ export default function ProductCard({ producto }: Props) {
         </div>
 
         {/* Precio y Botón */}
-        <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
+        <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between mt-auto">
           <span className="text-xl font-bold text-blue-600">
             {precioFormateado}
           </span>
@@ -63,11 +65,12 @@ export default function ProductCard({ producto }: Props) {
                 ? "bg-gray-900 text-white hover:bg-blue-600"
                 : "bg-gray-300 text-gray-500 cursor-not-allowed"
             }`}
+            aria-label={`Agregar ${producto.nombreProducto} al carrito`}
           >
             {producto.stock > 0 ? "Agregar" : "Agotado"}
           </button>
         </div>
       </div>
-    </div>
+    </article>
   );
 }
