@@ -30,10 +30,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log(` Buscando cliente para Usuario ID: ${user.idUsuario}`);
           const res = await api.get('/clientes');
           
-          // Debug: Ver qué llega del backend
+          // testeo no encuentro el fokin error
           console.log(" Lista de clientes en BD:", res.data);
 
-          // Buscamos el cliente que corresponde a este usuario
+          // respuesta del back para posible error
           const miCliente = res.data.find((c: any) => c.usuario.idUsuario === user.idUsuario);
 
           if (miCliente) {
@@ -55,7 +55,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     buscarClienteId();
   }, [isAuthenticated, user]);
 
-  // 2. Efecto para cargar el carrito una vez que tenemos el clienteId
+  //Efecto para cargar el carrito una vez que tenemos el clienteId
   useEffect(() => {
     if (clienteId) {
       fetchCart(clienteId);
@@ -84,7 +84,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      // Usamos clienteId (ID de tabla clientes) en lugar de user.idUsuario
+      // Usamos clienteId (ID de tabla clientes) en lugar de user.idUsuario encontre el error mal llamado al backen arreglar backend
+      
       await api.post('/carrito', {
         cliente: { id: clienteId }, 
         producto: { idProducto: producto.idProducto },

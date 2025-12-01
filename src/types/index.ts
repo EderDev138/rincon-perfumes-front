@@ -97,3 +97,30 @@ export interface Usuario {
   contrasena?: string; // Opcional, solo lo enviamos al crear/editar, el backend no siempre lo devuelve visible
   roles: Rol[];        
 }
+
+
+export interface DetallePedido {
+  idDetalle: number;
+  producto: Producto;
+  cantidad: number;
+  precioUnitario: number;
+  subtotal: number; // Precio * Cantidad
+}
+
+export interface Pedido {
+  idPedido: number;
+  fechaPedido: string; 
+  estado: string;
+  
+  // Totales
+  subtotal: number; // Neto
+  iva: number;
+  total: number;    // Bruto
+  
+
+  direccionEnvio: string;
+  numeroSeguimiento?: string;
+
+  
+  detalles: DetallePedido[];
+}

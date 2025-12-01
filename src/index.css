@@ -1,1 +1,29 @@
 @import "tailwindcss";
+
+
+
+:root {
+  /* Fondo Crema / Hueso */
+  --color-cream-50: #FDFBF7;
+  --color-cream-100: #F5F0E6;
+  
+  /* Dorados */
+  --color-gold-400: #E5C15D;
+  --color-gold-500: #D4AF37; /* Dorado Clásico */
+  --color-gold-600: #AA8C2C;
+  
+  /* Textos oscuros (para contraste con el crema) */
+  --color-dark-900: #1A1A1A;
+}
+
+body {
+  background-color: var(--color-cream-50);
+  color: var(--color-dark-900);
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; /* O una fuente serif elegante si prefieres */
+}
+
+/* Clases utilitarias personalizadas si tailwind no las detecta automáticamente */
+.bg-gold-500 { background-color: var(--color-gold-500); }
+.text-gold-500 { color: var(--color-gold-500); }
+.border-gold-500 { border-color: var(--color-gold-500); }
+.hover\:bg-gold-600:hover { background-color: var(--color-gold-600); }

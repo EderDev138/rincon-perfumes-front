@@ -10,6 +10,7 @@ import Carrito from '../pages/Carrito';
 import Gracias from '../pages/Gracias';
 import AdminProductos from '../pages/AdminProductos';
 import AdminUsuarios from '../pages/AdminUsuarios';
+import MisPedidos from '../pages/MisPedidos';
 
 export const AppRoutes = () => {
   return (
@@ -25,6 +26,7 @@ export const AppRoutes = () => {
         <Route element={<ProtectedRoute />}>
           <Route path="/carrito" element={<Carrito />} />
           <Route path="/gracias" element={<Gracias />} />
+          <Route path="/mis-pedidos" element={<MisPedidos />}/>
         </Route>
 
         {/* Rutas de Administrador  Login*/}

@@ -36,13 +36,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = async (correo: string, contrasena: string) => {
     try {
-      // 1. Login para obtener token
+      //Login para obtener token
       const resLogin = await api.post<LoginResponse>('/auth/login', { correo, contrasena });
       
       if (resLogin.data.autenticado && resLogin.data.token) {
         const newToken = resLogin.data.token;
 
-        // 2. Buscar datos completos del usuario (para tener el ID)
+        //Buscar datos completos del usuario (para tener el ID)
         const resUsers = await api.get<Usuario[]>('/usuarios');
         const usuarioEncontrado = resUsers.data.find(u => u.correo === correo);
 

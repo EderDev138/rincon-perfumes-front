@@ -3,7 +3,7 @@ import { CartContext } from '../context/CartContext';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api/axiosConfig';
-import type { CarritoItem } from '../types'; // Importamos el tipo para el map
+import type { CarritoItem } from '../types';
 
 export default function Carrito() {
   const cartContext = useContext(CartContext);
@@ -12,39 +12,46 @@ export default function Carrito() {
 
   if (!cartContext || !authContext) return null;
 
-  // ¡Agrega 'clienteId' aquí!
-const { items, total, removeFromCart, clearCart, clienteId } = cartContext;
+  const { items, total, removeFromCart, clearCart, clienteId } = cartContext;
   const { user } = authContext;
 
+  // reglas de promocion
+  const MONTO_MINIMO_DESCUENTO = 59990;
+  const TASA_DESCUENTO = 0.10; // 10%
+
+  // --- CÁLCULOS ---
+  //
+  const aplicaDescuento = total > MONTO_MINIMO_DESCUENTO;
+  const montoDescuento = aplicaDescuento ? Math.round(total * TASA_DESCUENTO) : 0;
+
+  // Nuevo Subtotal con descuento aplicado
+  const subtotalConDescuento = total - montoDescuento;
+
+  // IVA (19% sobre el monto con descuento)
+  const iva = Math.round(subtotalConDescuento * 0.19);
+
+  // Total Final
+  const totalFinal = Math.round(subtotalConDescuento + iva);
+
   const handleCheckout = async () => {
-    // 1. Validación de seguridad
     if (!clienteId || items.length === 0) {
       alert("No se puede procesar: Faltan datos del cliente o el carrito está vacío.");
       return;
     }
 
     try {
-      // 2. Preparar datos numéricos (Redondeados para evitar errores de decimales)
-      const subtotalImp = Math.round(total);
-      const ivaImp = Math.round(total * 0.19);
-      const totalImp = Math.round(total * 1.19);
-
-      // 
-      // 
       const now = new Date();
-      // Ajustamos a hora local manualmente
       const fechaLocal = new Date(now.getTime() - (now.getTimezoneOffset() * 60000))
                          .toISOString()
                          .slice(0, 19); 
 
-      // 4. Payload BLINDADO (Todos los campos)
       const pedidoPayload = {
         cliente: { id: Number(clienteId) }, 
         fechaPedido: fechaLocal,          
-        subtotal: subtotalImp,
-        descuento: 0,                       
-        iva: ivaImp,
-        total: totalImp,
+        subtotal: total, // Enviamos el subtotal original
+        descuento: montoDescuento, // ¡Aquí enviamos el descuento calculado!
+        iva: iva,
+        total: totalFinal,
         estado: "PENDIENTE",
         direccionEnvio: "Dirección Principal", 
         comunaEnvio: "Santiago",               
@@ -54,20 +61,11 @@ const { items, total, removeFromCart, clearCart, clienteId } = cartContext;
 
       console.log("📦 Enviando Pedido:", pedidoPayload);
 
-      // 5. Enviar Cabecera
       const resPedido = await api.post('/pedidos', pedidoPayload);
-      
-      // Recuperar ID de respuesta (soportando variantes)
       const pedidoId = resPedido.data?.id || resPedido.data?.idPedido;
 
-      if (!pedidoId) {
-        console.error("Respuesta extraña del backend:", resPedido);
-        throw new Error("El pedido se creó pero no tiene ID.");
-      }
+      if (!pedidoId) throw new Error("El pedido se creó pero no tiene ID.");
 
-      console.log("✅ Pedido creado con ID:", pedidoId);
-
-      // 6. Enviar Detalles (Items)
       const detallesPromesas = items.map((item: CarritoItem) => {
         return api.post('/detalles-pedido', {
           pedido: { id: pedidoId },
@@ -75,66 +73,47 @@ const { items, total, removeFromCart, clearCart, clienteId } = cartContext;
           cantidad: Number(item.cantidad),
           precioUnitario: Number(item.producto.precio),
           subtotal: Number(item.producto.precio * item.cantidad),
-          descuentoAplicado: 0
+          descuentoAplicado: 0 // futuro se puede informar descuento para posible factura
         });
       });
 
       await Promise.all(detallesPromesas);
-
-      // 7. Finalizar
       await clearCart();
       navigate('/gracias', { state: { numeroOrden: pedidoId } });
 
     } catch (error: any) {
       console.error("🔥 Error al comprar:", error);
-      // Mostrar el mensaje real del backend si viene
       const serverMsg = error.response?.data?.message || error.response?.data?.error;
-      alert(`Error del servidor: ${serverMsg || "Revisa la consola de Java para más detalles"}`);
+      alert(`Error del servidor: ${serverMsg || "Revisa la consola"}`);
     }
   };
 
-  // Renderizado si está vacío
   if (items.length === 0) {
     return (
       <div className="container mx-auto py-10 px-4 text-center">
         <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded mb-4">
-          Tu carrito está vacío. ¡Ve al catálogo a buscar perfumes!
+          Tu carrito está vacío.
         </div>
-        <Link 
-          to="/catalogo" 
-          className="inline-block border border-blue-600 text-blue-600 hover:bg-blue-50 font-semibold py-2 px-4 rounded"
-        >
+        <Link to="/catalogo" className="inline-block border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-white font-semibold py-2 px-4 rounded transition-colors">
           Ir al Catálogo
         </Link>
       </div>
     );
   }
 
-  // Renderizado principal
   return (
-    <>
-    <div className="container mx-auto py-10 px-4">
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">Tu Carrito</h2>
+    <div className="container mx-auto py-10 px-4 min-h-screen bg-[#FDFBF7]">
+      <h2 className="text-3xl font-serif font-bold mb-8 text-[#1A1A1A]">Tu Carrito de Compras</h2>
       
-      <div className="overflow-x-auto bg-white shadow-md rounded-lg">
+      <div className="overflow-x-auto bg-white shadow-lg rounded-lg border border-[#D4AF37]/20">
         <table className="min-w-full leading-normal">
           <thead>
             <tr>
-              <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Producto
-              </th>
-              <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Precio
-              </th>
-              <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Cantidad
-              </th>
-              <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Subtotal
-              </th>
-              <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                Acciones
-              </th>
+              <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Producto</th>
+              <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Precio</th>
+              <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Cant.</th>
+              <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Subtotal</th>
+              <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider"></th>
             </tr>
           </thead>
           <tbody>
@@ -143,66 +122,89 @@ const { items, total, removeFromCart, clearCart, clienteId } = cartContext;
                 <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
                   <div className="flex items-center">
                     <div className="ml-3">
-                      <p className="text-gray-900 whitespace-no-wrap">
-                        {item.producto.nombreProducto}
-                      </p>
+                      <p className="text-gray-900 font-medium">{item.producto.nombreProducto}</p>
+                      <p className="text-gray-500 text-xs">{item.producto.marca.nombreMarca}</p>
                     </div>
                   </div>
                 </td>
                 <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                  <p className="text-gray-900 whitespace-no-wrap">
-                    ${item.producto.precio.toLocaleString('es-CL')}
-                  </p>
+                  ${item.producto.precio.toLocaleString('es-CL')}
                 </td>
-                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                  <p className="text-gray-900 whitespace-no-wrap">{item.cantidad}</p>
+                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm text-center">
+                  {item.cantidad}
                 </td>
-                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm">
-                  <p className="text-gray-900 whitespace-no-wrap font-bold">
-                    ${(item.producto.precio * item.cantidad).toLocaleString('es-CL')}
-                  </p>
+                <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm text-right font-bold text-gray-700">
+                  ${(item.producto.precio * item.cantidad).toLocaleString('es-CL')}
                 </td>
                 <td className="px-5 py-5 border-b border-gray-200 bg-white text-sm text-right">
-                  <button
-                    onClick={() => removeFromCart(item.id)}
-                    className="text-red-600 hover:text-red-900 font-semibold"
-                  >
+                  <button onClick={() => removeFromCart(item.id)} className="text-red-500 hover:text-red-700 font-semibold text-xs uppercase">
                     Eliminar
                   </button>
                 </td>
               </tr>
             ))}
           </tbody>
-          <tfoot>
+          
+          <tfoot className="bg-gray-50">
+            {/* Subtotal */}
             <tr>
-              <td colSpan={3} className="px-5 py-5 border-b border-gray-200 bg-gray-50 text-right text-lg font-bold text-gray-800">
-                Total Neto:
-              </td>
-              <td className="px-5 py-5 border-b border-gray-200 bg-gray-50 text-lg font-bold text-blue-600">
+              <td colSpan={3} className="px-5 py-2 text-right text-sm text-gray-600">Subtotal:</td>
+              <td className="px-5 py-2 text-right text-sm font-medium text-gray-800">
                 ${total.toLocaleString('es-CL')}
               </td>
-              <td className="border-b border-gray-200 bg-gray-50"></td>
+              <td></td>
+            </tr>
+
+            {/* Fila Descuento (Visible solo si aplica) */}
+            {aplicaDescuento && (
+              <tr>
+                <td colSpan={3} className="px-5 py-2 text-right text-sm text-green-600 font-medium">
+                  Descuento (10% por compra mayor a $59.990):
+                </td>
+                <td className="px-5 py-2 text-right text-sm font-medium text-green-600">
+                  - ${montoDescuento.toLocaleString('es-CL')}
+                </td>
+                <td></td>
+              </tr>
+            )}
+            
+            {/* IVA */}
+            <tr>
+              <td colSpan={3} className="px-5 py-2 text-right text-sm text-gray-600 border-b border-gray-200">IVA (19%):</td>
+              <td className="px-5 py-2 text-right text-sm font-medium text-gray-800 border-b border-gray-200">
+                ${iva.toLocaleString('es-CL')}
+              </td>
+              <td className="border-b border-gray-200"></td>
+            </tr>
+
+            {/* Total Final */}
+            <tr className="bg-[#1A1A1A] text-white">
+              <td colSpan={3} className="px-5 py-4 text-right text-lg font-bold">
+                TOTAL A PAGAR:
+              </td>
+              <td className="px-5 py-4 text-right text-xl font-bold text-[#D4AF37]">
+                ${totalFinal.toLocaleString('es-CL')}
+              </td>
+              <td></td>
             </tr>
           </tfoot>
         </table>
       </div>
 
-      <div className="flex justify-end gap-4 mt-6">
+      <div className="flex justify-end gap-4 mt-8">
         <button
           onClick={clearCart}
-          className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded"
+          className="px-6 py-2 border border-gray-300 text-gray-600 hover:bg-gray-100 font-medium rounded transition-colors"
         >
           Vaciar Carrito
         </button>
         <button
           onClick={handleCheckout}
-          className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded shadow-lg transform hover:scale-105 transition-transform"
+          className="px-8 py-3 bg-[#D4AF37] hover:bg-[#AA8C2C] text-white font-bold rounded shadow-lg transform hover:scale-105 transition-all"
         >
           Confirmar Compra
         </button>
       </div>
     </div>
-  </>
-    
   );
 }
