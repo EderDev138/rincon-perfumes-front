@@ -4,6 +4,8 @@ import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import type { CarritoItem } from '../types';
+// Agregamos toast para feedback visual si no lo tenías importado
+import { toast } from 'react-toastify'; 
 
 export default function Carrito() {
   const cartContext = useContext(CartContext);
@@ -12,30 +14,37 @@ export default function Carrito() {
 
   if (!cartContext || !authContext) return null;
 
+  // Extraemos isAuthenticated del AuthContext
   const { items, total, removeFromCart, clearCart, clienteId } = cartContext;
-  const { user } = authContext;
+  const { isAuthenticated } = authContext; // Solo necesitamos saber si está autenticado
 
   // reglas de promocion
   const MONTO_MINIMO_DESCUENTO = 59990;
   const TASA_DESCUENTO = 0.10; // 10%
 
   // --- CÁLCULOS ---
-  //
   const aplicaDescuento = total > MONTO_MINIMO_DESCUENTO;
   const montoDescuento = aplicaDescuento ? Math.round(total * TASA_DESCUENTO) : 0;
-
-  // Nuevo Subtotal con descuento aplicado
   const subtotalConDescuento = total - montoDescuento;
-
-  // IVA (19% sobre el monto con descuento)
   const iva = Math.round(subtotalConDescuento * 0.19);
-
-  // Total Final
   const totalFinal = Math.round(subtotalConDescuento + iva);
 
   const handleCheckout = async () => {
-    if (!clienteId || items.length === 0) {
-      alert("No se puede procesar: Faltan datos del cliente o el carrito está vacío.");
+    // 1. NUEVA VALIDACIÓN: Si es invitado, mandar a Login
+    if (!isAuthenticated) {
+        toast.info("Para finalizar tu compra, por favor inicia sesión o regístrate.");
+        navigate('/login'); 
+        return;
+    }
+
+    // 2. Validación de seguridad (si está logueado pero falla la carga de perfil)
+    if (!clienteId) {
+      toast.error("Error: No se pudo identificar tu perfil de cliente.");
+      return;
+    }
+
+    if (items.length === 0) {
+      toast.warn("El carrito está vacío.");
       return;
     }
 
@@ -48,12 +57,12 @@ export default function Carrito() {
       const pedidoPayload = {
         cliente: { id: Number(clienteId) }, 
         fechaPedido: fechaLocal,          
-        subtotal: total, // Enviamos el subtotal original
-        descuento: montoDescuento, // ¡Aquí enviamos el descuento calculado!
+        subtotal: total,
+        descuento: montoDescuento,
         iva: iva,
         total: totalFinal,
         estado: "PENDIENTE",
-        direccionEnvio: "Dirección Principal", 
+        direccionEnvio: "Dirección Principal", // Podrías mejorar esto con un form
         comunaEnvio: "Santiago",               
         regionEnvio: "Metropolitana",         
         numeroSeguimiento: ""                  
@@ -73,7 +82,7 @@ export default function Carrito() {
           cantidad: Number(item.cantidad),
           precioUnitario: Number(item.producto.precio),
           subtotal: Number(item.producto.precio * item.cantidad),
-          descuentoAplicado: 0 // futuro se puede informar descuento para posible factura
+          descuentoAplicado: 0 
         });
       });
 
@@ -84,7 +93,7 @@ export default function Carrito() {
     } catch (error: any) {
       console.error("🔥 Error al comprar:", error);
       const serverMsg = error.response?.data?.message || error.response?.data?.error;
-      alert(`Error del servidor: ${serverMsg || "Revisa la consola"}`);
+      toast.error(`Error al procesar el pedido: ${serverMsg || "Intenta nuevamente"}`);
     }
   };
 
@@ -105,6 +114,7 @@ export default function Carrito() {
     <div className="container mx-auto py-10 px-4 min-h-screen bg-[#FDFBF7]">
       <h2 className="text-3xl font-serif font-bold mb-8 text-[#1A1A1A]">Tu Carrito de Compras</h2>
       
+      {/* Tabla de items (Igual que antes) */}
       <div className="overflow-x-auto bg-white shadow-lg rounded-lg border border-[#D4AF37]/20">
         <table className="min-w-full leading-normal">
           <thead>
@@ -155,11 +165,11 @@ export default function Carrito() {
               <td></td>
             </tr>
 
-            {/* Fila Descuento (Visible solo si aplica) */}
+            {/* Descuento */}
             {aplicaDescuento && (
               <tr>
                 <td colSpan={3} className="px-5 py-2 text-right text-sm text-green-600 font-medium">
-                  Descuento (10% por compra mayor a $59.990):
+                  Descuento (10%):
                 </td>
                 <td className="px-5 py-2 text-right text-sm font-medium text-green-600">
                   - ${montoDescuento.toLocaleString('es-CL')}
@@ -177,7 +187,7 @@ export default function Carrito() {
               <td className="border-b border-gray-200"></td>
             </tr>
 
-            {/* Total Final */}
+            {/* Total */}
             <tr className="bg-[#1A1A1A] text-white">
               <td colSpan={3} className="px-5 py-4 text-right text-lg font-bold">
                 TOTAL A PAGAR:
@@ -202,7 +212,7 @@ export default function Carrito() {
           onClick={handleCheckout}
           className="px-8 py-3 bg-[#D4AF37] hover:bg-[#AA8C2C] text-white font-bold rounded shadow-lg transform hover:scale-105 transition-all"
         >
-          Confirmar Compra
+          {isAuthenticated ? 'Confirmar Compra' : 'Iniciar Sesión para Comprar'}
         </button>
       </div>
     </div>

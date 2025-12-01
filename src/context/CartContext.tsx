@@ -10,8 +10,9 @@ interface CartContextType {
   count: number;
   clienteId: number | null;
   addToCart: (producto: Producto) => Promise<void>;
-  removeFromCart: (idCarrito: number) => Promise<void>;
+  removeFromCart: (idCarritoOrProductoId: number) => Promise<void>;
   clearCart: () => Promise<void>;
+  syncGuestCart: (clienteId: number) => Promise<void>; // Nueva función
 }
 
 export const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -19,48 +20,39 @@ export const CartContext = createContext<CartContextType | undefined>(undefined)
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isAuthenticated } = useContext(AuthContext)!;
   const [items, setItems] = useState<CarritoItem[]>([]);
- 
   const [clienteId, setClienteId] = useState<number | null>(null);
 
-
+  // 1. Cargar Cliente ID si está autenticado
   useEffect(() => {
     const buscarClienteId = async () => {
       if (isAuthenticated && user?.idUsuario) {
         try {
-          console.log(` Buscando cliente para Usuario ID: ${user.idUsuario}`);
           const res = await api.get('/clientes');
-          
-          // testeo no encuentro el fokin error
-          console.log(" Lista de clientes en BD:", res.data);
-
-          // respuesta del back para posible error
           const miCliente = res.data.find((c: any) => c.usuario.idUsuario === user.idUsuario);
-
           if (miCliente) {
-            console.log(`Cliente encontrado! ID Cliente: ${miCliente.id}`);
             setClienteId(miCliente.id);
-          } else {
-            console.warn(" Este usuario NO tiene perfil de Cliente asociado.");
-            setClienteId(null);
           }
         } catch (error) {
-          console.error(" Error buscando perfil de cliente:", error);
+          console.error("Error buscando perfil de cliente:", error);
         }
       } else {
         setClienteId(null);
-        setItems([]);
+        // Si no está autenticado, cargar del LocalStorage
+        const localCart = localStorage.getItem('guest_cart');
+        if (localCart) {
+            setItems(JSON.parse(localCart));
+        } else {
+            setItems([]);
+        }
       }
     };
-
     buscarClienteId();
   }, [isAuthenticated, user]);
 
-  //Efecto para cargar el carrito una vez que tenemos el clienteId
+  // 2. Cargar carrito del backend cuando tenemos clienteId
   useEffect(() => {
     if (clienteId) {
       fetchCart(clienteId);
-    } else {
-      setItems([]);
     }
   }, [clienteId]);
 
@@ -73,59 +65,117 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // --- LOGICA HÍBRIDA AGREGAR ---
   const addToCart = async (producto: Producto) => {
-    if (!isAuthenticated) {
-        toast.error("Debes iniciar sesión");
-        return;
-    }
-    if (!clienteId) {
-      toast.error("Tu usuario no tiene perfil de cliente habilitado para compras.");
-      return;
-    }
+    // A. FLUJO USUARIO LOGUEADO (BACKEND)
+    if (isAuthenticated && clienteId) {
+      try {
+        await api.post('/carrito', {
+          cliente: { id: clienteId }, 
+          producto: { idProducto: producto.idProducto },
+          cantidad: 1
+        });
+        toast.success("Agregado al carrito");
+        await fetchCart(clienteId);
+      } catch (error) {
+        console.error("Error al agregar:", error);
+        toast.error("Error al conectar con el servidor.");
+      }
+    } 
+    // B. FLUJO INVITADO (LOCALSTORAGE)
+    else {
+        const currentItems = [...items];
+        // Buscamos si ya existe el producto en el array local por ID de producto
+        const existingIndex = currentItems.findIndex(i => i.producto.idProducto === producto.idProducto);
 
-    try {
-      // Usamos clienteId (ID de tabla clientes) en lugar de user.idUsuario encontre el error mal llamado al backen arreglar backend
-      
-      await api.post('/carrito', {
-        cliente: { id: clienteId }, 
-        producto: { idProducto: producto.idProducto },
-        cantidad: 1
-      });
-      toast.success("Agregado al carrito");
-      await fetchCart(clienteId);
-    } catch (error) {
-      console.error("Error al agregar:", error);
-      toast.error("Error al conectar con el servidor.");
+        if (existingIndex >= 0) {
+            currentItems[existingIndex].cantidad += 1;
+        } else {
+            // Creamos un item simulado
+            const newItem: CarritoItem = {
+                id: Date.now(), // ID temporal
+                cantidad: 1,
+                producto: producto
+            };
+            currentItems.push(newItem);
+        }
+        
+        setItems(currentItems);
+        localStorage.setItem('guest_cart', JSON.stringify(currentItems));
+        toast.success("Agregado al carrito (Local)");
     }
   };
 
-  const removeFromCart = async (idCarrito: number) => {
-    if (!clienteId) return;
-    try {
-      await api.delete(`/carrito/${idCarrito}`);
-      await fetchCart(clienteId);
-      toast.info("Producto eliminado");
-    } catch (error) {
-      console.error("Error al eliminar:", error);
+  // --- LOGICA HÍBRIDA ELIMINAR ---
+  const removeFromCart = async (idIdentifier: number) => {
+    if (isAuthenticated && clienteId) {
+        // idIdentifier es el ID de la tabla carrito
+        try {
+            await api.delete(`/carrito/${idIdentifier}`);
+            await fetchCart(clienteId);
+            toast.info("Producto eliminado");
+        } catch (error) {
+            console.error(error);
+        }
+    } else {
+        // idIdentifier es el ID temporal o ID del item en el array
+        const newItems = items.filter(item => item.id !== idIdentifier);
+        setItems(newItems);
+        localStorage.setItem('guest_cart', JSON.stringify(newItems));
+        toast.info("Producto eliminado");
     }
   };
 
+  // --- LOGICA HÍBRIDA VACIAR ---
   const clearCart = async () => {
-    if (!clienteId) return;
-    try {
-      await api.delete(`/carrito/vaciar/${clienteId}`);
-      setItems([]);
-      toast.info("Carrito vaciado");
-    } catch (error) {
-      console.error("Error al vaciar:", error);
+    if (isAuthenticated && clienteId) {
+        try {
+            await api.delete(`/carrito/vaciar/${clienteId}`);
+            setItems([]);
+        } catch (error) {
+            console.error(error);
+        }
+    } else {
+        setItems([]);
+        localStorage.removeItem('guest_cart');
     }
+  };
+
+  // --- NUEVA FUNCIÓN: SINCRONIZAR ---
+  // Esta función se llamará justo después del Login exitoso
+  const syncGuestCart = async (idCliente: number) => {
+      const localCart = localStorage.getItem('guest_cart');
+      if (localCart) {
+          const guestItems: CarritoItem[] = JSON.parse(localCart);
+          
+          if (guestItems.length > 0) {
+              toast.info("Sincronizando tu carrito...");
+              // Enviamos cada item local al backend
+              const promises = guestItems.map(item => {
+                  return api.post('/carrito', {
+                      cliente: { id: idCliente },
+                      producto: { idProducto: item.producto.idProducto },
+                      cantidad: item.cantidad
+                  });
+              });
+
+              try {
+                  await Promise.all(promises);
+                  localStorage.removeItem('guest_cart'); // Limpiamos local
+                  await fetchCart(idCliente); // Recargamos del backend
+                  toast.success("Carrito sincronizado");
+              } catch (error) {
+                  console.error("Error sincronizando carrito", error);
+              }
+          }
+      }
   };
 
   const total = items.reduce((acc, item) => acc + (item.producto.precio * item.cantidad), 0);
   const count = items.reduce((acc, item) => acc + item.cantidad, 0);
 
   return (
-    <CartContext.Provider value={{ items, total, count,clienteId, addToCart, removeFromCart, clearCart }}>
+    <CartContext.Provider value={{ items, total, count, clienteId, addToCart, removeFromCart, clearCart, syncGuestCart }}>
       {children}
     </CartContext.Provider>
   );

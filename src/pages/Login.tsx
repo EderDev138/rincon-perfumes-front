@@ -1,10 +1,15 @@
 import { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
+// Importamos CartContext y api para la sincronización
+import { CartContext } from '../context/CartContext'; 
+import api from '../api/axiosConfig';
+
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
 export default function Login() {
   const { login } = useContext(AuthContext)!;
+  const { syncGuestCart } = useContext(CartContext)!; // Función para sincronizar carrito
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
@@ -17,12 +22,50 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
+      // 1. Intentamos Loguear
       await login(formData.correo, formData.contrasena);
       toast.success("¡Bienvenido de vuelta!");
+
+      // 2. Lógica de Sincronización de Carrito (Invitado -> Cliente)
+      // -------------------------------------------------------------
+      const resUsers = await api.get('/usuarios');
+      const usuarioLogueado = resUsers.data.find((u: any) => u.correo === formData.correo);
+      
+      if (usuarioLogueado) {
+          const resClientes = await api.get('/clientes');
+          const cliente = resClientes.data.find((c: any) => c.usuario.idUsuario === usuarioLogueado.idUsuario);
+          
+          if (cliente) {
+              await syncGuestCart(cliente.id);
+          }
+      }
+      // -------------------------------------------------------------
+
       navigate('/catalogo'); 
+
     } catch (error: any) {
       console.error(error);
-      toast.error(error.message || "Credenciales incorrectas");
+      const mensajeError = error.message || "";
+
+      // 3. DETECCIÓN DE CORREO NO REGISTRADO CON BOTÓN DE ACEPTACIÓN
+      if (mensajeError.toLowerCase().includes("correo no registrado")) {
+        
+        // window.confirm muestra el mensaje y botones "Aceptar" y "Cancelar"
+        const irARegistro = window.confirm(
+            "El correo ingresado no existe en nuestra base de datos.\n\n¿Deseas ir al formulario de registro para crear una cuenta ahora?"
+        );
+
+        // Si el usuario hace clic en "Aceptar"
+        if (irARegistro) {
+            navigate('/registro');
+        }
+        // Si hace clic en "Cancelar", se queda en el Login y no hace nada más.
+
+      } else {
+        // Cualquier otro error (contraseña incorrecta, servidor caído, etc.)
+        toast.error(mensajeError || "Credenciales incorrectas");
+      }
+
     } finally {
       setLoading(false);
     }

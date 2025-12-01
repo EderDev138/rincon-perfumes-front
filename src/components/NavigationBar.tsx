@@ -3,11 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { CartContext } from '../context/CartContext';
 import SearchBar from './SearchBar';
-import { ChevronDown, Users, Package, ShoppingBag } from 'lucide-react'; // Importamos ShoppingBag
+import { ChevronDown, Users, Package, ShoppingBag } from 'lucide-react';
 
 export default function NavigationBar() {
   const { user, logout, isAuthenticated, isAdmin } = useContext(AuthContext)!;
-  const { items } = useContext(CartContext)!;
+  const { items } = useContext(CartContext)!; // items ahora viene de local o DB
   const navigate = useNavigate();
 
   // Estado para controlar el dropdown de Admin en desktop
@@ -25,7 +25,7 @@ export default function NavigationBar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-4">
           
-          {/*Logo y Links Izquierda */}
+          {/* Logo y Links Izquierda */}
           <div className="flex items-center gap-8 flex-shrink-0">
             <Link to="/" className="text-2xl font-serif font-bold text-[#D4AF37] hover:text-white transition-colors">
               Rincón Perfumes
@@ -39,7 +39,7 @@ export default function NavigationBar() {
                 Catálogo
               </Link>
 
-              {/* Menu desplegable*/}
+              {/* Menu desplegable Admin */}
               {isAdmin && (
                 <div 
                   className="relative group"
@@ -81,20 +81,21 @@ export default function NavigationBar() {
           {/* Carrito y Usuario */}
           <div className="flex items-center gap-4 flex-shrink-0">
             
-            {/* Carrito */}
-            {isAuthenticated && (
-              <Link to="/carrito" className="relative p-2 text-gray-300 hover:text-[#D4AF37] transition-colors">
-                <span className="sr-only">Ver carrito</span>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                {cartCount > 0 && (
-                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-[#1A1A1A] bg-[#D4AF37] rounded-full transform translate-x-1/4 -translate-y-1/4">
-                    {cartCount}
-                  </span>
-                )}
-              </Link>
-            )}
+            {/* CAMBIO PRINCIPAL:
+               Eliminamos la condición {isAuthenticated && (...)} 
+               para que el carrito sea visible para todos.
+            */}
+            <Link to="/carrito" className="relative p-2 text-gray-300 hover:text-[#D4AF37] transition-colors">
+              <span className="sr-only">Ver carrito</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              {cartCount > 0 && (
+                <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-[#1A1A1A] bg-[#D4AF37] rounded-full transform translate-x-1/4 -translate-y-1/4">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
 
             {/* Usuario menu desplegado */}
             <div className="ml-2 relative flex items-center gap-4 group">
@@ -111,7 +112,6 @@ export default function NavigationBar() {
                   {/* Dropdown del Usuario */}
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-xl py-1 border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                     
-                    {/* Link a Mis Pedidos */}
                     <Link 
                       to="/mis-pedidos" 
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-[#D4AF37] transition-colors"

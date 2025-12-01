@@ -21,19 +21,22 @@ export const AppRoutes = () => {
         <Route path="/catalogo" element={<Catalogo />} />
         <Route path="/login" element={<Login />} />
         <Route path="/registro" element={<Registro />} />
+        
+      
+        <Route path="/carrito" element={<Carrito />} />
 
         {/* Rutas Protegidas (Requieren Login) */}
         <Route element={<ProtectedRoute />}>
-          <Route path="/carrito" element={<Carrito />} />
+      
           <Route path="/gracias" element={<Gracias />} />
           <Route path="/mis-pedidos" element={<MisPedidos />}/>
         </Route>
 
-        {/* Rutas de Administrador  Login*/}
+        {/* Rutas de Administrador */}
         <Route element={<ProtectedRoute requireAdmin={true} />}>
           <Route path="/admin" element={<Navigate to="/admin/productos" replace />} />
           <Route path="/admin/productos" element={<AdminProductos />} />
-          {<Route path="/admin/usuarios" element={<AdminUsuarios />}/>}
+          <Route path="/admin/usuarios" element={<AdminUsuarios />} />
         </Route>
       </Route>
 
